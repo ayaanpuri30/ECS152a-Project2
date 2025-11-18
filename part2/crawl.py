@@ -89,6 +89,7 @@ def main():
                     options={
                         "captureHeaders": True,
                         "captureContent": True,
+                        "captureCookies": True,
                         "captureBinaryContent": CAPTURE_BINARY_CONTENT,
                     },
                 )

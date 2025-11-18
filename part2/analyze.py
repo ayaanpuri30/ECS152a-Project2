@@ -27,7 +27,6 @@ def analyze_hars():
     per_site_data = {}  # site_reg -> list of (cookie_name, cookie_owner_reg, source)
     per_site_counts = {}  # total third-party cookies per site
     cookie_name_counts = {}  # global counts by cookie name
-    cookie_name_examples = {}  # cookie_name -> set of example domains that set/send it
 
     for file in os.listdir(HAR_DIR):
         har_path = os.path.join(HAR_DIR, file)
@@ -59,8 +58,8 @@ def analyze_hars():
                 req_reg = registrable(parsed.hostname)
 
                 for c in resp_cookies:
-                    name = c["name"]
-                    cookie_domain_raw = c["domain"]
+                    name = c.get("name", "")
+                    cookie_domain_raw = c.get("domain", "")
                     cookie_domain = cookie_domain_raw.lstrip(".").lower()
                     cookie_reg = registrable(cookie_domain)
 
@@ -77,15 +76,10 @@ def analyze_hars():
                             ]
 
                         cookie_name_counts[name] = cookie_name_counts.get(name, 0) + 1
-
-                        if name in cookie_name_examples:
-                            cookie_name_examples[name].add(cookie_reg)
-                        else:
-                            cookie_name_examples[name] = set([cookie_reg])
 
                 for c in req_cookies:
-                    name = c["name"]
-                    cookie_domain_raw = c["domain"]
+                    name = c.get("name", "")
+                    cookie_domain_raw = c.get("domain", "")
                     cookie_domain = cookie_domain_raw.lstrip(".").lower()
                     cookie_reg = registrable(cookie_domain)
 
@@ -102,11 +96,6 @@ def analyze_hars():
                             ]
 
                         cookie_name_counts[name] = cookie_name_counts.get(name, 0) + 1
-
-                        if name in cookie_name_examples:
-                            cookie_name_examples[name].add(cookie_reg)
-                        else:
-                            cookie_name_examples[name] = set([cookie_reg])
 
                 if (
                     req_reg != site_reg
@@ -133,7 +122,6 @@ def analyze_hars():
         per_site_data,
         per_site_counts,
         cookie_name_counts,
-        cookie_name_examples,
     )
 
 
@@ -149,7 +137,6 @@ def main():
         per_site_data,
         per_site_counts,
         cookie_name_counts,
-        cookie_name_examples,
     ) = analyze_hars()
 
     print("=" * 20, "Third-party requests per visited site", "=" * 20)
@@ -166,23 +153,22 @@ def main():
 
     print("\n" + "=" * 20, "Third-party cookies summary", "=" * 20)
     print(f"Found third-party cookie data on {len(per_site_data)} visited sites.")
-    for site, data in per_site_data.items():
-        print(f"\t{site}: name: {data[0]} reg: {data[1]} type: {data[2]}")
+    for site, cookies in per_site_data.items():
+        print(f"\t{site}:")
+        for name, cookie_reg, source in cookies:
+            print(f"\t\t{name} from {cookie_reg} via {source}")
 
     for site, cnt in per_site_counts.items():
         print(f"\t{site}: {cnt} third party cookies per site")
 
     print(f"Total distinct third-party cookie names seen: {len(cookie_name_counts)}")
     top_counts = sorted(cookie_name_counts.items(), key=lambda kv: kv[1], reverse=True)[
-        :20
+        :10
     ]
     if len(top_counts) > 0:
-        print(
-            "\nTop 20 third-party cookie names (name: count, example owner domain(s))"
-        )
+        print("\nTop 10 third-party cookie names (name: count)")
         for name, cnt in top_counts:
-            examples = ", ".join(sorted(cookie_name_examples.get(name, set()))[:5])
-            print(f"\t{name}: {cnt}  (examples: {examples})")
+            print(f"\t{name}: {cnt}")
 
 
 if __name__ == "__main__":

@@ -4,3 +4,4 @@ __pycache__
 *.log
 *.csv
 *.har
+output.txt
